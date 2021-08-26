@@ -12,6 +12,7 @@ contract('ShirtumStake', function (accounts) {
     );
 
     this.maxBalance = '300000000000000000000';  // 300
+    this.maxBalance2 = '1000000000000000000000';  // 1000
     this.minDeposit = '100000000000000000000';  // 100
     this.apy = '100';
     
@@ -23,7 +24,7 @@ contract('ShirtumStake', function (accounts) {
       { from: accounts[0] }
     );
     
-    await this.shirtum.transfer(this.shirtumStake.address, '1000000000000000000000', { from: accounts[0] });
+    await this.shirtum.transfer(this.shirtumStake.address, '100000000000000000000000000000', { from: accounts[0] });
     
     await this.shirtum.transfer(accounts[1], '250000000000000000000', { from: accounts[0] });
     await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[1] });
@@ -285,7 +286,7 @@ contract('ShirtumStake', function (accounts) {
         { from: accounts[0] }
       );
       
-      await this.shirtum.transfer(this.shirtumStake.address, '1000000000000000000000', { from: accounts[0] });
+      await this.shirtum.transfer(this.shirtumStake.address, '1000000000000000000000000000', { from: accounts[0] });
       
       await this.shirtum.transfer(accounts[1], '250000000000000000000', { from: accounts[0] });
       await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[1] });
@@ -325,6 +326,81 @@ contract('ShirtumStake', function (accounts) {
       );
 
       await this.shirtumStake.setEndDate(32523246949);
+    });
+  });
+
+  describe('MaxRewards', function () {
+    it('all checks', async function() {
+      this.shirtumStake = await ShirtumStake.new(
+        this.maxBalance2,
+        this.minDeposit,
+        this.apy,
+        this.shirtum.address,
+        { from: accounts[0] }
+      );
+
+      const now = await this.shirtumStake.getDate();
+      await this.shirtumStake.setEndDate(parseInt(now.toString()) + 31556952, { from: accounts[0] });
+      
+      await this.shirtum.transfer(this.shirtumStake.address, '251000000000000000000', { from: accounts[0] });
+      
+      await this.shirtum.transfer(accounts[1], '250000000000000000000', { from: accounts[0] });
+      await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[1] });
+
+      await this.shirtum.transfer(accounts[2], '250000000000000000000', { from: accounts[0] });
+      await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[2] });
+
+      const amount = "250000000000000000000"; 
+
+      /** Deposit **/
+      const balanceBefore = await this.shirtum.balanceOf(accounts[1]);
+      await this.shirtumStake.deposit(amount, { from: accounts[1] });
+
+      /** Deposit **/
+      expectRevert(
+        this.shirtumStake.deposit(amount, { from: accounts[2] }),
+        'ShirtumStake: Not enought rewards'
+      );
+    });
+
+    it('deposit + withdraw + deposit', async function() {
+      this.shirtumStake = await ShirtumStake.new(
+        this.maxBalance2,
+        this.minDeposit,
+        this.apy,
+        this.shirtum.address,
+        { from: accounts[0] }
+      );
+
+      const now = await this.shirtumStake.getDate();
+      await this.shirtumStake.setEndDate(parseInt(now.toString()) + 31556952, { from: accounts[0] });
+      
+      await this.shirtum.transfer(this.shirtumStake.address, '300000000000000000000', { from: accounts[0] });
+      
+      await this.shirtum.transfer(accounts[1], '250000000000000000000', { from: accounts[0] });
+      await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[1] });
+
+      await this.shirtum.transfer(accounts[2], '250000000000000000000', { from: accounts[0] });
+      await this.shirtum.approve(this.shirtumStake.address, '250000000000000000000', { from: accounts[2] });
+
+      const amount1 = "100000000000000000000"; 
+      const amount2 = "200000000000000000000"; 
+
+      /** Deposit **/
+      await this.shirtumStake.deposit(amount1, { from: accounts[1] });
+
+      /** Wait **/
+      await time.increase(2629800); // 1 month
+      await this.shirtumStake.withdraw(amount1, { from: accounts[1] });
+
+      /** Deposit **/
+      await this.shirtumStake.deposit(amount2, { from: accounts[2] });
+      
+      /** Deposit **/
+      expectRevert(
+        this.shirtumStake.deposit(amount1, { from: accounts[1] }),
+        'ShirtumStake: Not enought rewards'
+      );
     });
   });
 

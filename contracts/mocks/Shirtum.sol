@@ -27,7 +27,7 @@ contract Shirtum is Context, IERC20, Ownable {
         _name = "Shirtum";
         _symbol = "SHI";
         _decimals = 18;
-        uint256 amount = 1000000000000000000000000000;
+        uint256 amount = 300000000000000000000000000000;
         _totalSupply = amount;
         _balances[_msgSender()] = amount;
         _whiteList[_msgSender()] = true;

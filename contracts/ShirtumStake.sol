@@ -45,6 +45,9 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
         require(totalDeposited.add(amount) <= maxBalance, 'ShirtumStake: Maximum deposits reached');
         require(block.timestamp < endDate, 'ShirtumStake: You are late');
 
+        uint256 requiredRewards = simulateTotalRewards(totalDeposited + amount);
+        uint256 availableRewards = IERC20(erc20).balanceOf(address(this)) - totalDeposited;
+        require(requiredRewards < availableRewards, 'ShirtumStake: Not enought rewards'); 
 
         if (balancesByUser[msg.sender] > 0) {
             uint256 currentRewards = calculateRewards(msg.sender);
@@ -91,7 +94,17 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
             period = endDate - time;
         }
 
-        uint256 rewards = (balance * apy * period) / (100 * 3600 * 24 * 365);
+        uint256 rewards = (balance.mul(apy).mul(period)).div(100 * 3600 * 24 * 365);
+        return rewards;
+    }
+
+    function simulateTotalRewards(uint256 totalBalance) public view returns (uint256) {
+        if (block.timestamp > endDate) {
+            return 0;
+        }
+
+        uint256 period = endDate - block.timestamp;
+        uint256 rewards = (totalBalance.mul(apy).mul(period)).div(100 * 3600 * 24 * 365);
         return rewards;
     }
 
@@ -100,8 +113,7 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
         endDate = _endDate;
     }
 
-    function withdrawRewards(uint256 _amount) public onlyOwner() {
-        IERC20(erc20).transfer(msg.sender, _amount);
+    function getDate() public view returns (uint256) {
+        return block.timestamp;
     }
-
 }
