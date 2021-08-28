@@ -45,8 +45,8 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
         require(totalDeposited.add(amount) <= maxBalance, 'ShirtumStake: Maximum deposits reached');
         require(block.timestamp < endDate, 'ShirtumStake: You are late');
 
-        uint256 requiredRewards = simulateTotalRewards(totalDeposited + amount);
-        uint256 availableRewards = IERC20(erc20).balanceOf(address(this)) - totalDeposited;
+        uint256 requiredRewards = simulateTotalRewards(totalDeposited.add(amount));
+        uint256 availableRewards = IERC20(erc20).balanceOf(address(this)).sub(totalDeposited);
         require(requiredRewards < availableRewards, 'ShirtumStake: Not enought rewards'); 
 
         if (balancesByUser[msg.sender] > 0) {
@@ -60,8 +60,8 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
         lastClaimTimeByUser[msg.sender] = now;
 
         IERC20(erc20).transferFrom(msg.sender, address(this), amount);
-        balancesByUser[msg.sender] += amount;
-        totalDeposited += amount;
+        balancesByUser[msg.sender] = balancesByUser[msg.sender].add(amount);
+        totalDeposited = totalDeposited.add(amount);
         emit Deposit(msg.sender, amount);
     }
 
@@ -77,21 +77,21 @@ contract ShirtumStake is Ownable, ReentrancyGuard {
         lastClaimTimeByUser[msg.sender] = now;
 
         IERC20(erc20).transfer(msg.sender, amount);
-        balancesByUser[msg.sender] -= amount;
-        totalDeposited -= amount;
+        balancesByUser[msg.sender] = balancesByUser[msg.sender].sub(amount);
+        totalDeposited = totalDeposited.sub(amount);
         emit Withdraw(msg.sender, amount);
     }
 
     function calculateRewards(address user) public view returns (uint256) {
         uint256 balance = balancesByUser[user];
         uint256 time = lastClaimTimeByUser[user];
-        uint256 period = block.timestamp - time;
+        uint256 period = block.timestamp.sub(time);
         
         if (block.timestamp > endDate) {
             if (time > endDate) {
                 time = endDate;
             }
-            period = endDate - time;
+            period = endDate.sub(time);
         }
 
         uint256 rewards = (balance.mul(apy).mul(period)).div(100 * 3600 * 24 * 365);
